@@ -136,7 +136,7 @@
     return '';
   }
 
-  async function collect({ includeGroups = false, onlyLabeled = false, onlySavedContacts = false } = {}) {
+  async function collect({ includeGroups = false, onlyLabeled = false, onlySavedContacts = false, etiqueta = '' } = {}) {
     if (!(await dbExists())) {
       throw new Error('Banco "model-storage" não encontrado. Confirme que o WhatsApp Web está logado.');
     }
@@ -272,11 +272,14 @@
       }
 
       const listaSimples = [];
+      const labelOptions = new Set();
       for (const [phone, data] of phoneMap.entries()) {
+        const etiquetas = Array.from(data.etiquetas).filter(Boolean);
+        etiquetas.forEach((tag) => labelOptions.add(tag));
         listaSimples.push({
           Telefone: data.telefone,
           Nome: data.nome,
-          Etiqueta: Array.from(data.etiquetas).join(' | '),
+          Etiqueta: etiquetas.join(' | '),
           ultimaMensagem: data.ultimaMensagem || 0,
         });
       }
@@ -300,12 +303,28 @@
         id: item.Telefone || '',
       }));
 
+      const filterTags = String(etiqueta || '')
+        .split(/[;,]/)
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (filterTags.length > 0) {
+        rows = rows.filter((row) => {
+          const values = String(row.etiquetas || '')
+            .split('|')
+            .map((value) => value.trim().toLowerCase())
+            .filter(Boolean);
+          return filterTags.some((tag) => values.some((value) => value === tag || value.includes(tag)));
+        });
+      }
+
       if (onlySavedContacts) {
         rows = rows.filter((row) => row.salvo_na_agenda === 'sim');
       }
 
       return {
         rows,
+        labelOptions: Array.from(labelOptions).sort((a, b) => a.localeCompare(b)),
         stats: {
           contatosNoBanco: phoneMap.size,
           etiquetasEncontradas: labelNames.size,

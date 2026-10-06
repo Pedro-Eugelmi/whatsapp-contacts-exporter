@@ -7,7 +7,8 @@
     body { font-family: system-ui, sans-serif; width: 320px; margin: 0; padding: 16px; color: #1f2933; }
     h1 { font-size: 15px; margin: 0 0 12px; }
     label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; }
-    select { font-size: 13px; }
+    select, input { font-size: 13px; }
+    input { width: 100%; padding: 8px 10px; border: 1px solid #d9dfe5; border-radius: 6px; box-sizing: border-box; }
     button { width: 100%; padding: 10px; font-size: 14px; border: 0; border-radius: 6px; cursor: pointer; margin-top: 6px; }
     #export { background: #128c7e; color: #fff; font-weight: 600; }
     #diagnose { background: #e4e7eb; color: #1f2933; }
@@ -24,6 +25,13 @@
     <select id="separator">
       <option value=";">; (Excel em português)</option>
       <option value=",">, (padrão internacional)</option>
+    </select>
+  </label>
+
+  <label>
+    Etiqueta (opcional):
+    <select id="tagFilter">
+      <option value="">Todas</option>
     </select>
   </label>
 

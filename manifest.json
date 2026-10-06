@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Exportador de Contatos e Etiquetas (WhatsApp Web)",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Exporta contatos e etiquetas do WhatsApp Web para CSV. 100% local, sem servidor.",
   "permissions": ["activeTab"],
   "host_permissions": ["https://web.whatsapp.com/*"],

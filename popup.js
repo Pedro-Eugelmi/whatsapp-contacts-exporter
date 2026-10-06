@@ -19,6 +19,24 @@ function setStatus(msg, isError = false) {
 function setBusy(busy) {
   $('export').disabled = busy;
   $('diagnose').disabled = busy;
+  $('tagFilter').disabled = busy;
+  $('separator').disabled = busy;
+}
+
+function populateTagFilter(options = []) {
+  const select = $('tagFilter');
+  const selected = select.value;
+  const values = Array.from(new Set((options || []).map((value) => String(value || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+  select.innerHTML = ['<option value="">Todas</option>']
+    .concat(values.map((value) => `<option value="${value}">${value}</option>`))
+    .join('');
+
+  if (values.includes(selected)) {
+    select.value = selected;
+  } else {
+    select.value = '';
+  }
 }
 
 async function getWhatsAppTab() {
@@ -84,29 +102,46 @@ function download(filename, text) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+async function loadTagOptions() {
+  try {
+    const response = await ask('export', { options: { etiqueta: '' } });
+    const options = Array.isArray(response && response.labelOptions) ? response.labelOptions : [];
+    populateTagFilter(options);
+  } catch (e) {
+    populateTagFilter([]);
+  }
+}
+
 async function exportRows() {
   setBusy(true);
   setStatus('Lendo dados do WhatsApp Web...');
   try {
-    const response = await ask('export', { options: {} });
+    const etiquetaFiltro = ($('tagFilter').value || '').trim();
+    const response = await ask('export', { options: { etiqueta: etiquetaFiltro } });
     const rawRows = Array.isArray(response && response.rows) ? response.rows : [];
     const rows = normalizeRowsForCsv(rawRows, { onlySavedContacts: false });
     const stats = response && response.stats ? response.stats : { etiquetasEncontradas: 0, associacoesEtiqueta: 0 };
+    const options = Array.isArray(response && response.labelOptions) ? response.labelOptions : [];
+    populateTagFilter(options);
 
     if (rows.length === 0) {
-      setStatus(
-        'Nenhuma linha encontrada.\nClique em "Diagnóstico" para ver o que existe no banco do WhatsApp Web.',
-        true
-      );
+      const msg = etiquetaFiltro
+        ? `Nenhum contato com a etiqueta "${etiquetaFiltro}" foi encontrado.`
+        : 'Nenhuma linha encontrada.\nClique em "Diagnóstico" para ver o que existe no banco do WhatsApp Web.';
+      setStatus(msg, true);
       return;
     }
 
     const sep = $('separator').value;
     const date = new Date().toISOString().slice(0, 10);
-    download(`whatsapp-contatos-${date}.csv`, buildCsv(rows, sep));
+    const fileName = etiquetaFiltro ? `whatsapp-contatos-${etiquetaFiltro.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${date}.csv` : `whatsapp-contatos-${date}.csv`;
+    download(fileName, buildCsv(rows, sep));
 
     let msg = `Pronto! ${rows.length} linhas exportadas.\n` +
       `Etiquetas encontradas: ${stats.etiquetasEncontradas} | Associações: ${stats.associacoesEtiqueta}`;
+    if (etiquetaFiltro) {
+      msg = `Pronto! ${rows.length} contatos com a etiqueta "${etiquetaFiltro}" exportados.`;
+    }
     if (stats.etiquetasEncontradas === 0) {
       msg += '\n\nNenhuma etiqueta encontrada. Etiquetas só existem em contas do WhatsApp Business.';
     }
@@ -117,6 +152,10 @@ async function exportRows() {
     setBusy(false);
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTagOptions();
+});
 
 $('export').addEventListener('click', async () => {
   await exportRows();
